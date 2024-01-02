@@ -74,7 +74,7 @@ def main():
 
 
         start_time = time.time()
-        swaps = calculate_swaps(chars, solution)
+        swaps = calculate_swaps([c for row in chars for c in row if c != None], [c for row in solution for c in row if c != None])
         end_time = time.time()
         elapsed_time = end_time - start_time
         print(f"\tcalculating swaps took {elapsed_time:.6f} seconds.")

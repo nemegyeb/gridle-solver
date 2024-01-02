@@ -1,9 +1,20 @@
-def find_orders(original, ordered):
+from typing import List as _List 
+from typing import TypeVar as _TypeVar
+
+_T = _TypeVar('T')
+
+def calculate_swaps(original: _List[_T], solution: _List[_T], to_coordinates=False):
+    orders = _find_orders(original, solution)
+    perms = _make_permutations(orders)
+    best = _select_best(perms)
+    if to_coordinates:
+        return _swaps_to_coordinates(best)
+    return best
+
+def _find_orders(original, ordered):
     return [[i for i, o in enumerate(ordered) if o == elem] for elem in original]
 
-
-
-def make_permutations(options):
+def _make_permutations(options):
     match options:
         case []:
             return []
@@ -12,22 +23,15 @@ def make_permutations(options):
         case [opt, *rest]:
             match opt:
                 case [e]:
-                   return [[e] + r for r in make_permutations(rest)]
+                   return [[e] + r for r in _make_permutations(rest)]
                 case [*es]:
                     return [
                         [e] + r
                         for e in es
-                        for r in make_permutations([[o for o in opt if o != e] for opt in rest])
+                        for r in _make_permutations([[o for o in opt if o != e] for opt in rest])
                     ]
 
-
-
-def select_best(perms):
-    return min([unshuffle(perm) for perm in perms], key=lambda l: len(l))
-
-
-
-def unshuffle(list):
+def _unshuffle(list):
     swaps = []
     for i in range(len(list)):
         curr = list[i]
@@ -36,11 +40,13 @@ def unshuffle(list):
             list[i], list[curr] = list[curr], list[i]
             swaps.append((i, curr))
             curr = list[i]
+
     return swaps
 
+def _select_best(perms):
+    return min([_unshuffle(perm) for perm in perms], key=lambda l: len(l))
 
-
-def swaps_to_coordinates(swaps):
+def _swaps_to_coordinates(swaps):
     mapping = {
         0:  (0, 0),
         1:  (0, 1),
@@ -65,13 +71,3 @@ def swaps_to_coordinates(swaps):
         20: (4, 4)
     }
     return [(mapping[i], mapping[j]) for (i,j) in swaps]
-
-
-
-def calculate_swaps(original, solution):
-    original = [char for word in original for char in word if char != None]
-    solution = [char for word in solution for char in word if char != None]
-    orders = find_orders(original, solution)
-    perms = make_permutations(orders)
-    best = select_best(perms)
-    return swaps_to_coordinates(best)
