@@ -45,19 +45,17 @@ def main():
     start_time = time.time()
     gridle = parse_gridle()
     end_time = time.time()
-    elapsed_time = end_time - start_time
 
     chars, colors = gridle
     print_gridle(gridle)
 
-    print(f"parsing took {elapsed_time:.6f} seconds.")
+    print(f"parsing took {end_time - start_time:.6f} seconds.")
 
     try:
         start_time = time.time()
         solution = solve(gridle, CORPUS_EN)
         end_time = time.time()
-        elapsed_time = end_time - start_time
-        print(f"solving took {elapsed_time:.6f} seconds.")
+        print(f"solving took {end_time - start_time:.6f} seconds.")
     except:
         print("An error occurred while trying to solve.")
         exit(1)
@@ -75,14 +73,10 @@ def main():
     start_time = time.time()
     swaps = calculate_swaps(chars, solution)
     end_time = time.time()
-    elapsed_time = end_time - start_time
-    print(f"calculating swaps took {elapsed_time:.6f} seconds.")
+    print(f"calculating swaps took {end_time - start_time:.6f} seconds.")
     execute_swaps(swaps)
     print(f"Solved with {len(swaps)} swaps.")
     # time.sleep(1.9)
 
-
-
 if __name__ == "__main__":
     main()
-

@@ -3,22 +3,65 @@ import subprocess
 import pytesseract
 import numpy as np
 from PIL import Image
+from typing import List, Optional
 
 class Colour:
     GRAY = "GRAY"
     YELLOW = "YELLOW"
     GREEN = "GREEN"
 
-class _Colours:
-    GRAY = (99, 99, 99)
-    BLACK = (0, 0, 0)
-    WHITE = (255, 255, 255)
-    YELLOW = (255, 255, 0)
-    BACKGROUND = (48, 48, 48)
+    def get_ansi(colour):
+        match colour:
+            case Colour.GRAY:
+                return "\033[37;2m"
+            case Colour.YELLOW:
+                return "\033[33m"
+            case Colour.GREEN:
+                return "\033[32;1m"
+            case _:
+                raise Exception("Unknown colour")
 
-def parse_gridle():
-    data = subprocess.run(["adb", "exec-out", "screencap", "-p"], capture_output=True).stdout
-    img = Image.open(io.BytesIO(data))
+class Gridle:
+    def __init__(self, chars: List[str], colours: List[Colour]):
+        self.chars = chars
+        self.colours = colours
+
+    def _to_grid(lst):
+        rows = []
+        for l in (5, 3, 5, 3, 5):
+            chunk = lst[:l]
+            lst = lst[l:]
+            if l == 3:
+                chunk.insert(1, None)
+                chunk.insert(3, None)
+            rows.append(chunk)
+        return rows
+
+    def chars_grid(self) -> List[List[Optional[str]]]:
+        return Gridle._to_grid(self.chars)
+
+    def colours_grid(self) -> List[List[Optional[Colour]]]:
+        return Gridle._to_grid(self.colours)
+
+    def __str__(self):
+        chars =  self.chars_grid()
+        colours = self.colours_grid()
+        s = ""
+        for row in zip(chars, colours):
+            for ch, col in zip(*row):                
+                if ch != None:
+                    s += f"{Colour.get_ansi(col)}{ch}\033[0m "
+                else:
+                    s += "  "
+            s += "\n"
+        return s
+
+def parse_gridle() -> Gridle:
+    res = subprocess.run(["adb", "exec-out", "screencap", "-p"], capture_output=True)
+    if res.returncode != 0:
+        raise Exception("Could not take screenshot")
+
+    img = Image.open(io.BytesIO(res.stdout))
     if img.mode != 'RGB':
         img = img.convert('RGB')
 
@@ -29,40 +72,28 @@ def parse_gridle():
     data[np.all(data == _Colours.BLACK, axis=-1)] = _Colours.BACKGROUND
     img_c = Image.fromarray(data)
 
-    """data = pytesseract.image_to_string(Image.fromarray(data), config='--psm 6 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ')
-
-    # parse characters
-    lines = data.split("\n")
-    assert len(lines) > 6
-    chars = []
-    for line in lines[1:6]:
-        assert len(line) == 5
-        chars.append([c if c != ' ' else None for c in list(line)])"""
-
     # do OCR and parse colours
     chars = []
     colours = []
     start = _find_first(img)
-    for y in range(5):
+    for count in (5, 3, 5, 3, 5):
         cell = start
-        row_col = []
-        row_char = []
-        count = 5 if y not in (1, 3) else 3
         for _ in range(count):
             end = _extract_cell(img, cell)
-            row_col.append(_get_color(img, cell, end))
-            row_char.append(_get_char(img_c, cell, end))
+            chars.append(_get_char(img_c, cell, end))
+            colours.append(_get_colour(img, cell, end))
             cell = _next_cell(img, cell)
-        if count == 3:
-            row_char.insert(1, None)
-            row_char.insert(3, None)
-            row_col.insert(1, None)
-            row_col.insert(3, None)
-        chars.append(row_char)
-        colours.append(row_col)
         start = _next_cell(img, start, horizontal=False)
 
-    return (chars, colours)
+    return Gridle(chars, colours)
+
+class _Colours:
+    GRAY = (99, 99, 99)
+    BLACK = (0, 0, 0)
+    WHITE = (255, 255, 255)
+    GREEN = (0, 255, 0)
+    YELLOW = (255, 255, 0)
+    BACKGROUND = (48, 48, 48)
 
 def _find_first(image):
     width, height = image.size
@@ -124,38 +155,36 @@ def _next_cell(image, start, horizontal=True):
                 case 1, _Colours.BLACK:
                     return (start_x, y)
 
-def _get_color(image, start, end):
+def _get_colour(image, start, end):
     data = np.array(image.crop((*start, *end)))
 
-    # Calculate the average color
-    background_color = np.array(_Colours.BACKGROUND)
-    average_color = np.mean(data, axis=(0, 1)) - background_color
-    r, g, b = average_color
+    # Calculate the average colour
+    background_colour = np.array(_Colours.BACKGROUND)
+    average_colour = np.mean(data, axis=(0, 1)) - background_colour
+    r, g, b = average_colour
+
+    # Select cell colour
     if g > 0 and r < 0 and b < 0:
         return Colour.GREEN
     elif g > 0 and r > 0 and b < 0:
         return Colour.YELLOW
-    else:
-        if not ((r - g) ** 2 + (r - b) ** 2 < 1):
-            print(f"{(r - g) ** 2 + (r - b) ** 2=}, {r=}, {b=}, {g=}, image saved as /tmp/parser_fail.png")
-            image.crop((*start, *end)).save("/tmp/parser_fail.png", format="png")
-        assert (r - g) ** 2 + (r - b) ** 2 < 1
-        return Colour.GRAY
+    elif (r - g) ** 2 + (r - b) ** 2 >= 1:
+        raise Exception("Could not parse cell colour")
+    return Colour.GRAY
 
 def _get_char(image, start, end):
     data = pytesseract.image_to_string(image.crop((*start, *end)), config='--psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ')
     data = data.replace(" ", "").replace("\n", "")
     if data == "A":
+        # Sometimes 'Z', 'Y' and 'V' are mistaken for an 'A' to avoid this, perform OCR again with better setting for those characters
         data10 = pytesseract.image_to_string(image.crop((*start, *end)), config='--psm 10 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ')
         data10 = data10.replace(" ", "").replace("\n", "")
         if data == data10:
             return data
-        else:
-            assert len(data10) == 1
-            return data10
-    else:
-        if len(data) != 1:
-            print(f"{len(data)=}, {data=}, image saved as /tmp/parser_fail.png")
-            image.crop((*start, *end)).save("/tmp/parser_fail.png", format="png")
-        assert len(data) == 1
-        return data
+        elif len(data10) != 1:
+            raise Exception("Could not parse cell character")
+        return data10
+    
+    if len(data) != 1:
+        raise Exception("Could not parse cell character")
+    return data
