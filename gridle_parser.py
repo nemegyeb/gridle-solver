@@ -85,22 +85,10 @@ def parse_gridle() -> Gridle:
 
     # prepare for OCR
     data = np.array(img)
-<<<<<<< HEAD
     thresh = sum(_Colours.BACKGROUND) + 30
     data[data.sum(axis=-1) < thresh] = _Colours.WHITE
     assert sum(_Colours.WHITE) == 3 * 255
     data[data.sum(axis=-1) != 3 * 255] = _Colours.BLACK
-||||||| fae8628
-    data[np.all(data == _Colours.GRAY, axis=-1)] = _Colours.WHITE
-    data[np.all(data == _Colours.YELLOW, axis=-1)] = _Colours.WHITE
-    data[np.all(data == _Colours.BLACK, axis=-1)] = _Colours.BACKGROUND
-=======
-    data[np.all(data == _Colours.BLACK, axis=-1)] = _Colours.BACKGROUND
-    data[np.all(data == _Colours.BACKGROUND, axis=-1)] = _Colours.WHITE
-    data[np.all(data == _Colours.GRAY, axis=-1)] = _Colours.BLACK
-    data[np.all(data == _Colours.YELLOW, axis=-1)] = _Colours.BLACK
-    data[np.all(data == _Colours.GREEN, axis=-1)] = _Colours.BLACK
->>>>>>> 451a29dc99cd27380fa92e69c833bbe78992b06c
     img_c = Image.fromarray(data)
 
     # do OCR and parse colours
