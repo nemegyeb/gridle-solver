@@ -1,24 +1,21 @@
-import pyautogui
+import subprocess
 
-OFFSET_X = 35
-OFFSET_Y = 345
-SPACING_X = 78.5
-SPACING_Y = 73
-
-def row_col_to_pixel_coords(r, c):
-    return round(OFFSET_X + c * SPACING_X), round(OFFSET_Y + r * SPACING_Y)
-
-def start_new():
+def start_new(gridle):
     pyautogui.mouseDown(321, 163)
     pyautogui.mouseUp()
     return
 
-def execute_swaps(swaps):
-    for (start_r, start_c), (end_r, end_c) in swaps:
-        start_x, start_y = row_col_to_pixel_coords(start_r, start_c)
-        end_x, end_y = row_col_to_pixel_coords(end_r, end_c)
+def execute_swaps(gridle, swaps):
+    for start, end in swaps:
+        start = gridle.coordinates[start]
+        end = gridle.coordinates[end]
+        start = _get_cell_centre(start)
+        end = _get_cell_centre(end)
+        _adb_swipe(start, end)
 
-        # drag
-        pyautogui.mouseDown(start_x + 50, start_y + 50)
-        pyautogui.moveTo(end_x + 50, end_y + 50, duration=0.01)
-        pyautogui.mouseUp()
+def _adb_swipe(start, end, duration_ms=100):
+    subprocess.run(["adb", "shell", "input", "touchscreen", "swipe", *map(str, start + end), str(duration_ms)])
+
+def _get_cell_centre(cell):
+    start, end = cell
+    return ((start[0] + end[0])//2, (start[1] + end[1])//2)
