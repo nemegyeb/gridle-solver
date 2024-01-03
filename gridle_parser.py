@@ -59,19 +59,7 @@ class Gridle:
             if i != 4:
                 disp += f"\n├───{'┼───' * 4}┤\n"
             else:
-<<<<<<< HEAD
-                str += f"\n└───{('┴───' * (len(gridle_chars[0]) - 1))}┘"
-        print(str)
-        
-
-||||||| fae8628
-                str += f"\n└───{('┴───' * (len(gridle_chars[0]) - 1))}┘"
-        print(str)
-
-=======
-                disp += f"\n└───{'┴───' * 4}┘"
->>>>>>> 451a29dc99cd27380fa92e69c833bbe78992b06c
-
+                disp += f"\n└───{('┴───' * 4)}┘"
         print(disp)
 
 def parse_gridle() -> Gridle:
