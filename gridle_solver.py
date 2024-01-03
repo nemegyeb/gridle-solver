@@ -200,4 +200,3 @@ def solve(gridle, corpus):
 
     return result
 
-

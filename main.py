@@ -5,7 +5,6 @@ from gridle_parser import parse_gridle
 from gridle_solver import solve
 from swap_solver import calculate_swaps
 from corpora import CORPUS_EN
-from print_gridle import print_gridle
 
 
 OFFSET_X = 154
@@ -46,8 +45,7 @@ def main():
     gridle = parse_gridle()
     end_time = time.time()
 
-    chars, colors = gridle
-    print_gridle(gridle)
+    gridle.print()
 
     print(f"parsing took {end_time - start_time:.6f} seconds.")
 

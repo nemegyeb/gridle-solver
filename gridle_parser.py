@@ -13,9 +13,9 @@ class Colour:
     def get_ansi(colour):
         match colour:
             case Colour.GRAY:
-                return "\033[37;2m"
+                return "\033[30;1m"
             case Colour.YELLOW:
-                return "\033[33m"
+                return "\033[33;1m"
             case Colour.GREEN:
                 return "\033[32;1m"
             case _:
@@ -43,18 +43,26 @@ class Gridle:
     def colours_grid(self) -> List[List[Optional[Colour]]]:
         return Gridle._to_grid(self.colours)
 
-    def __str__(self):
-        chars =  self.chars_grid()
-        colours = self.colours_grid()
-        s = ""
-        for row in zip(chars, colours):
-            for ch, col in zip(*row):                
-                if ch != None:
-                    s += f"{Colour.get_ansi(col)}{ch}\033[0m "
+    def print(self):
+        gridle_chars = self.chars_grid()
+        gridle_colors = self.colours_grid()
+        ANSI_RESET = "\033[0m"
+        VERT_BAR = f"{ANSI_RESET}|"
+        str = f"{ANSI_RESET}┌───{('┬───' * (len(gridle_chars[0]) - 1))}┐\n"
+        for row in range(len(gridle_chars)):
+            str += VERT_BAR
+            for col in range(len(gridle_chars[row])):
+                if gridle_chars[row][col] == None:
+                    str += f"   {VERT_BAR}"
                 else:
-                    s += "  "
-            s += "\n"
-        return s
+                    str += f"{Colour.get_ansi(gridle_colors[row][col])} {gridle_chars[row][col]} {VERT_BAR}"
+            if row != len(gridle_chars) - 1:
+                str += f"\n├───{('┼───' * (len(gridle_chars[0]) - 1))}┤\n"
+            else:
+                str += f"\n└───{('┴───' * (len(gridle_chars[0]) - 1))}┘"
+        print(str)
+
+
 
 def parse_gridle() -> Gridle:
     res = subprocess.run(["adb", "exec-out", "screencap", "-p"], capture_output=True)
