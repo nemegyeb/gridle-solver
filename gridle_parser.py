@@ -3,7 +3,7 @@ import subprocess
 import pytesseract
 import numpy as np
 from PIL import Image
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 class Colour:
     GRAY = "GRAY"
@@ -22,9 +22,10 @@ class Colour:
                 raise Exception("Unknown colour")
 
 class Gridle:
-    def __init__(self, chars: List[str], colours: List[Colour]):
+    def __init__(self, chars: List[str], colours: List[Colour], coordinates: List[Tuple]):
         self.chars = chars
         self.colours = colours
+        self.coordinates = coordinates
 
     def _to_grid(lst):
         rows = []
@@ -75,6 +76,7 @@ def parse_gridle() -> Gridle:
     # do OCR and parse colours
     chars = []
     colours = []
+    coords = []
     start = _find_first(img)
     for count in (5, 3, 5, 3, 5):
         cell = start
@@ -82,10 +84,11 @@ def parse_gridle() -> Gridle:
             end = _extract_cell(img, cell)
             chars.append(_get_char(img_c, cell, end))
             colours.append(_get_colour(img, cell, end))
+            coords.append((cell, end))
             cell = _next_cell(img, cell)
         start = _next_cell(img, start, horizontal=False)
 
-    return Gridle(chars, colours)
+    return Gridle(chars, colours, coords)
 
 class _Colours:
     GRAY = (99, 99, 99)
