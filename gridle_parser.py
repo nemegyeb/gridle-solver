@@ -45,25 +45,23 @@ class Gridle:
         return Gridle._to_grid(self.colours)
 
     def print(self):
-        gridle_chars = self.chars_grid()
-        gridle_colors = self.colours_grid()
         ANSI_RESET = "\033[0m"
         VERT_BAR = f"{ANSI_RESET}|"
-        str = f"{ANSI_RESET}┌───{('┬───' * (len(gridle_chars[0]) - 1))}┐\n"
-        for row in range(len(gridle_chars)):
-            str += VERT_BAR
-            for col in range(len(gridle_chars[row])):
-                if gridle_chars[row][col] == None:
-                    str += f"   {VERT_BAR}"
+        disp = f"{ANSI_RESET}┌───{'┬───' * 4}┐\n"
+        for i, row in enumerate(zip(self.chars_grid(), self.colours_grid())):
+            disp += VERT_BAR
+            for char, colour in zip(*row):
+                if char == None:
+                    disp += "   "
                 else:
-                    str += f"{Colour.get_ansi(gridle_colors[row][col])} {gridle_chars[row][col]} {VERT_BAR}"
-            if row != len(gridle_chars) - 1:
-                str += f"\n├───{('┼───' * (len(gridle_chars[0]) - 1))}┤\n"
+                    disp += f"{Colour.get_ansi(colour)} {char} "
+                disp += VERT_BAR
+            if i != 4:
+                disp += f"\n├───{'┼───' * 4}┤\n"
             else:
-                str += f"\n└───{('┴───' * (len(gridle_chars[0]) - 1))}┘"
-        print(str)
+                disp += f"\n└───{'┴───' * 4}┘"
 
-
+        print(disp)
 
 def parse_gridle() -> Gridle:
     res = subprocess.run(["adb", "exec-out", "screencap", "-p"], capture_output=True)
@@ -76,9 +74,11 @@ def parse_gridle() -> Gridle:
 
     # prepare for OCR
     data = np.array(img)
-    data[np.all(data == _Colours.GRAY, axis=-1)] = _Colours.WHITE
-    data[np.all(data == _Colours.YELLOW, axis=-1)] = _Colours.WHITE
     data[np.all(data == _Colours.BLACK, axis=-1)] = _Colours.BACKGROUND
+    data[np.all(data == _Colours.BACKGROUND, axis=-1)] = _Colours.WHITE
+    data[np.all(data == _Colours.GRAY, axis=-1)] = _Colours.BLACK
+    data[np.all(data == _Colours.YELLOW, axis=-1)] = _Colours.BLACK
+    data[np.all(data == _Colours.GREEN, axis=-1)] = _Colours.BLACK
     img_c = Image.fromarray(data)
 
     # do OCR and parse colours
@@ -167,7 +167,7 @@ def _next_cell(image, start, horizontal=True):
                     return (start_x, y)
 
 def _get_colour(image, start, end):
-    data = np.array(image.crop((*start, *end)))
+    data = np.array(image.crop(start + end))
 
     # Calculate the average colour
     background_colour = np.array(_Colours.BACKGROUND)
@@ -184,11 +184,11 @@ def _get_colour(image, start, end):
     return Colour.GRAY
 
 def _get_char(image, start, end):
-    data = pytesseract.image_to_string(image.crop((*start, *end)), config='--psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+    data = pytesseract.image_to_string(image.crop(start + end), config='--psm 8 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ')
     data = data.replace(" ", "").replace("\n", "")
     if data == "A":
         # Sometimes 'Z', 'Y' and 'V' are mistaken for an 'A' to avoid this, perform OCR again with better setting for those characters
-        data10 = pytesseract.image_to_string(image.crop((*start, *end)), config='--psm 10 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+        data10 = pytesseract.image_to_string(image.crop(start + end), config='--psm 10 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ')
         data10 = data10.replace(" ", "").replace("\n", "")
         if data == data10:
             return data
