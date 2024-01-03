@@ -62,6 +62,7 @@ class Gridle:
             else:
                 str += f"\n└───{('┴───' * (len(gridle_chars[0]) - 1))}┘"
         print(str)
+        
 
 
 
@@ -76,9 +77,10 @@ def parse_gridle() -> Gridle:
 
     # prepare for OCR
     data = np.array(img)
-    data[np.all(data == _Colours.GRAY, axis=-1)] = _Colours.WHITE
-    data[np.all(data == _Colours.YELLOW, axis=-1)] = _Colours.WHITE
-    data[np.all(data == _Colours.BLACK, axis=-1)] = _Colours.BACKGROUND
+    thresh = sum(_Colours.BACKGROUND) + 30
+    data[data.sum(axis=-1) < thresh] = _Colours.WHITE
+    assert sum(_Colours.WHITE) == 3 * 255
+    data[data.sum(axis=-1) != 3 * 255] = _Colours.BLACK
     img_c = Image.fromarray(data)
 
     # do OCR and parse colours
