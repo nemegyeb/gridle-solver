@@ -1,9 +1,8 @@
-from typing import List as _List 
-from typing import TypeVar as _TypeVar
+from typing import List, TypeVar
 
-_T = _TypeVar('T')
+T = TypeVar('T')
 
-def calculate_swaps(original: _List[_T], solution: _List[_T], to_coordinates=False):
+def calculate_swaps(original: List[T], solution: List[T], to_coordinates=False):
     orders = _find_orders(original, solution)
     perms = _make_permutations(orders)
     best = _select_best(perms)

@@ -1,11 +1,9 @@
 import time
 import pyautogui
-from gridle_parser import parse_gridle
-from gridle_solver import solve
-from swap_solver import calculate_swaps
 from corpora import CORPUS_EN
-
-
+from gridle_solver import solve
+from gridle_parser import parse_gridle
+from swap_solver import calculate_swaps
 
 OFFSET_X = 35
 OFFSET_Y = 345
@@ -74,7 +72,7 @@ def main():
 
 
         start_time = time.time()
-        swaps = calculate_swaps([c for row in chars for c in row if c != None], [c for row in solution for c in row if c != None])
+        swaps = calculate_swaps(gridle.chars, [c for row in solution for c in row if c != None])
         end_time = time.time()
         elapsed_time = end_time - start_time
         print(f"\tcalculating swaps took {elapsed_time:.6f} seconds.")

@@ -48,7 +48,8 @@ def possible_words(gridle, corpus, row=None, column=None):
     assert(row in (None,0,2,4))
     assert(column in (None,0,2,4))
 
-    gridle_chars, gridle_colors = gridle
+    gridle_chars = gridle.chars_grid()
+    gridle_colors = gridle.colours_grid()
     available_non_intersect = ""
 
     chars = pick_list(gridle_chars, row=row, column=column)
@@ -123,22 +124,9 @@ def flatten(xss):
     return [x for xs in xss for x in xs]
 
 
-
-def copy_greens(gridle):
-    gridle_chars, gridle_colors = gridle
-    result = [[None]*5,[None]*5,[None]*5,[None]*5,[None]*5]
-    for r in range(5):
-        for c in range(5):
-            if gridle_colors[r][c] == GREEN:
-                result[r][c] = gridle_chars[r][c]
-    return result
-
-
-
 def solve(gridle, corpus):
-    # result = copy_greens(gridle)
     result = [[None]*5,[None]*5,[None]*5,[None]*5,[None]*5]
-    char_bag = flatten(gridle[0])
+    char_bag = flatten(gridle.chars_grid())
     char_bag = [c for c in char_bag if c != None]
     row_possibilities = [None]*5
     col_possibilities = [None]*5
