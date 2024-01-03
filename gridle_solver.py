@@ -1,13 +1,9 @@
 import re
-from gridle_parser import Colour
-
-
+from gridle_parser import Cell, Colour, Gridle
 
 GRAY = Colour.GRAY
 YELLOW = Colour.YELLOW
 GREEN = Colour.GREEN
-
-
 
 # pick a row list or column list from the gridle
 def pick_list(gridle, row=None, column=None):
@@ -19,8 +15,6 @@ def pick_list(gridle, row=None, column=None):
         return gridle[row]
     else:
         return [row_list[column] for row_list in gridle]
-
-
 
 # returns a string containing all the yellow chars in the row and column that intersect at (row,column)
 def available_intersect(gridle_chars, gridle_colors, row, column):
@@ -41,15 +35,13 @@ def available_intersect(gridle_chars, gridle_colors, row, column):
 
     return "".join(set(yellows))
 
-
-
 def possible_words(gridle, corpus, row=None, column=None):
     assert((row == None) != (column == None)) # exactly one of the two is given
     assert(row in (None,0,2,4))
     assert(column in (None,0,2,4))
 
-    gridle_chars = gridle.chars_grid()
-    gridle_colors = gridle.colours_grid()
+    gridle_chars = _grid_chars(gridle)
+    gridle_colors = _grid_colours(gridle)
     available_non_intersect = ""
 
     chars = pick_list(gridle_chars, row=row, column=column)
@@ -118,16 +110,9 @@ def possible_words(gridle, corpus, row=None, column=None):
 
     return possible_words
 
-
-
-def flatten(xss):
-    return [x for xs in xss for x in xs]
-
-
-def solve(gridle, corpus):
+def solve_gridle(gridle, corpus):
     result = [[None]*5,[None]*5,[None]*5,[None]*5,[None]*5]
-    char_bag = flatten(gridle.chars_grid())
-    char_bag = [c for c in char_bag if c != None]
+    char_bag = gridle.chars()
     row_possibilities = [None]*5
     col_possibilities = [None]*5
     for rc in (0,2,4):
@@ -198,5 +183,10 @@ def solve(gridle, corpus):
                     result[char_index][rc] = word[char_index]
                 col_possibilities[rc] = []
 
-    return result
+    return Gridle([Cell(0, 0, c, GREEN) for row in result for c in row if c != None])
 
+def _grid_chars(gridle):
+    return [[cell.char if cell != None else None for cell in row] for row in gridle.to_grid()]
+
+def _grid_colours(gridle):
+    return [[cell.colour if cell != None else None for cell in row] for row in gridle.to_grid()]
