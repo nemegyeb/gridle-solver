@@ -81,14 +81,17 @@ def possible_words(gridle, corpus, row=None, column=None):
         if colors[i] == GREEN:
             pattern += chars[i]
         else:
-            if row != None:
-                available = available_non_intersect + available_intersect(gridle_chars, gridle_colors, row, i)
-            else:
-                available = available_non_intersect + available_intersect(gridle_chars, gridle_colors, i, column)
-            assert available != None
-            available = "".join(set(available))
-            pattern += "[" + available.translate({ord(c): None for c in chars[i] + grays}) + "]" # match for any available char but not the one at this position and not other grays in this word
+            # match for any available char but not the one at this position and not other grays in this word
+            available = available_non_intersect.translate({ord(c): None for c in chars[i] + grays})
 
+            # also allow yellows of intersecting rows/columns
+            if row != None:
+                available += available_intersect(gridle_chars, gridle_colors, row, i)
+            else:
+                available += available_intersect(gridle_chars, gridle_colors, i, column)
+
+            available = "".join(set(available)) # remove duplicates
+            pattern += f"[{available}]"
     p = re.compile(pattern)
     regex_filtered_words = list(filter(p.match, corpus))
 
