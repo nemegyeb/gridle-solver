@@ -71,14 +71,16 @@ class Gridle:
         cells = []
         img_array =  np.array(image)
         start = _find_first(img_array)
-        for count in (5, 3, 5, 3, 5):
+        for row in range(5):
+            count = (5, 3, 5, 3, 5)[row]
             cell = start
             for i in range(count):
                 end = _extract_cell(img_array, cell)
                 cells.append(Cell.parse(img_array, cell, end))
                 if i + 1 != count:
                     cell = _next_horizontal(img_array, cell)
-            start = _next_vertical(img_array, start)
+            if row < 4:
+                start = _next_vertical(img_array, start)
 
         return Gridle(cells)
 
