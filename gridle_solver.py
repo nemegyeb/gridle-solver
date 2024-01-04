@@ -138,29 +138,32 @@ def solve_gridle(gridle, corpus):
         # remove candidates that would use unavailable characters:
         for possibilities in (row_possibilities, col_possibilities):
             for rc in (0,2,4): # for column or row
-                for candidate in possibilities[rc]:
+                for candidate in possibilities[rc].copy():
                     char_bag_copy = char_bag.copy()
                     for char_index in range(5):
                         if candidate[char_index] in char_bag_copy:
                             char_bag_copy.remove(candidate[char_index])
                         else:
                             possibilities[rc].remove(candidate)
+                            changed = True
                             break
 
         # remove candidates that use a character which no intersecting candidate uses at this position:
         for r in (0,2,4):
-            for candidate in row_possibilities[r]:
+            for candidate in row_possibilities[r].copy():
                 for c in (0,2,4):
                     # if there are intersecting candidates but none of them contain the char at the required position:
                     if col_possibilities[c] and candidate[c] not in [x[r] for x in col_possibilities[c]]:
                         row_possibilities[r].remove(candidate)
+                        changed = True
                         break
         for c in (0,2,4):
-            for candidate in col_possibilities[c]:
+            for candidate in col_possibilities[c].copy():
                 for r in (0,2,4):
                     # if there are intersecting candidates but none of them contain the char at the required position:
                     if row_possibilities[r] and candidate[r] not in [x[c] for x in row_possibilities[r]]:
                         col_possibilities[c].remove(candidate)
+                        changed = True
                         break
 
         # fill in words if there is only one possibility:
