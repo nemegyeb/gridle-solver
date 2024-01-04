@@ -6,11 +6,9 @@ def start_new(gridle):
     return
 
 def execute_swaps(gridle, swaps):
-    for start_index, end_index in swaps:
-        start_cell = gridle.coordinates[start_index]
-        end_cell = gridle.coordinates[end_index]
-        start_coords = _get_cell_centre(start_cell)
-        end_coords = _get_cell_centre(end_cell)
+    for start, end in swaps:
+        start_coords = gridle.cells[start].get_centre()
+        end_coords = gridle.cells[end].get_centre()
         _adb_swipe(start_coords, end_coords)
 
 def _adb_swipe(start, end, duration_ms=100):
@@ -18,6 +16,3 @@ def _adb_swipe(start, end, duration_ms=100):
     end_x, end_y = end
     subprocess.run(["adb", "shell", "input", "touchscreen", "swipe", str(start_x), str(start_y), str(end_x), str(end_y), str(duration_ms)])
 
-def _get_cell_centre(cell):
-    start, end = cell
-    return ((start[0] + end[0])//2, (start[1] + end[1])//2)
