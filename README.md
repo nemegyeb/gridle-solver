@@ -29,7 +29,7 @@ It can parse and solve gridle puzzles automatically.
 
 1. Connect your phone so that it is ready to receive adb commands.
    The easiest way to do this is to connect your phone via USB and enable USB debugging for the device you are using.
-2. Use the default theme (Dark) in gridle. The other themes are not supported and will (most likely) not work.
+2. Use the default theme (Dark) and the default highlight colours in gridle. The other themes and highlight colours are not supported and will (most likely) not work.
 3. Run `python3 main.py`
 
 ## License
