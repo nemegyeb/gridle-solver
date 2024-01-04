@@ -26,7 +26,7 @@ class Cell:
         self.char = char
         self.colour = colour
 
-    def __repr__(self) -> str:
+    def __format__(self, format_spec: str) -> str:
         return f"{Colour.get_ansi(self.colour)}{self.char}\033[0m"
 
     def get_centre(self) -> tuple[int, int]:
@@ -113,7 +113,7 @@ class Gridle:
                 if cell == None:
                     disp += "   "
                 else:
-                    disp += f" {cell!r} "
+                    disp += f" {cell} "
                 disp += VERT_BAR
             if i != 4:
                 disp += f"\n├───{'┼───' * 4}┤\n"
