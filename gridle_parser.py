@@ -27,7 +27,7 @@ class Cell:
         self.colour = colour
 
     def __format__(self, format_spec: str) -> str:
-        return f"{Colour.get_ansi(self.colour)}{self.char}\033[0m"
+        return format(f"{Colour.get_ansi(self.colour)}{self.char}\033[0m", format_spec)
 
     def get_centre(self) -> tuple[int, int]:
         return ((self.start[0] + self.end[0])//2, (self.start[1] + self.end[1])//2)
