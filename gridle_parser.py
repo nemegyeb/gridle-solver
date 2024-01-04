@@ -26,6 +26,9 @@ class Cell:
         self.char = char
         self.colour = colour
 
+    def __repr__(self) -> str:
+        return f"{Colour.get_ansi(self.colour)}{self.char}\033[0m"
+
     def get_centre(self) -> tuple[int, int]:
         return ((self.start[0] + self.end[0])//2, (self.start[1] + self.end[1])//2)
 
@@ -68,20 +71,12 @@ class Gridle:
         if image.mode != 'RGB':
             image = image.convert('RGB')
 
-        cells = []
-        img_array =  np.array(image)
-        start = _find_first(img_array)
-        for row in range(5):
-            count = (5, 3, 5, 3, 5)[row]
-            cell = start
-            for i in range(count):
-                end = _extract_cell(img_array, cell)
-                cells.append(Cell.parse(img_array, cell, end))
-                if i + 1 != count:
-                    cell = _next_horizontal(img_array, cell)
-            if row < 4:
-                start = _next_vertical(img_array, start)
-
+        img = _GridleImage(image)
+        start = img.find_first_cell()
+        cells = img.parse_row(start, 5)
+        for count in (3, 5, 3, 5):
+            start = img.next_vertical(start)
+            cells.extend(img.parse_row(start, count))
         return Gridle(cells)
 
     def chars(self) -> list[str]:
@@ -99,17 +94,26 @@ class Gridle:
             rows.append(chunk)
         return rows
 
+    def get_row(self, row) -> list[Cell]:
+        if row not in (0,1,2):
+            raise Exception("Gridle only has 3 rows")
+        return self.cells[row * 8:row * 8 + 5]
+
+    def get_col(self, col) -> list[Cell]:
+        if col not in (0,1,2):
+            raise Exception("Gridle only has 3 columns")
+        return [cell for i, cell in enumerate(self.cells) if i in (2 * col, 5 + col, 8 + 2 * col, 13 + col, 16 + 2 * col)]
+
     def print(self):
-        ANSI_RESET = "\033[0m"
-        VERT_BAR = f"{ANSI_RESET}|"
-        disp = f"{ANSI_RESET}┌───{'┬───' * 4}┐\n"
+        VERT_BAR = "|"
+        disp = f"┌───{'┬───' * 4}┐\n"
         for i, row in enumerate(self.to_grid()):
             disp += VERT_BAR
             for cell in row:
                 if cell == None:
                     disp += "   "
                 else:
-                    disp += f"{Colour.get_ansi(cell.colour)} {cell.char} "
+                    disp += f" {cell!r} "
                 disp += VERT_BAR
             if i != 4:
                 disp += f"\n├───{'┼───' * 4}┤\n"
@@ -125,36 +129,55 @@ class _Colours:
     YELLOW = (255, 255, 0)
     BACKGROUND = (48, 48, 48)
 
-def _find_first(img_array):
-    width = img_array.shape[1]
+class _GridleImage:
+    def __init__(self, image):
+        self.img_array = np.array(image)
 
-    first_back =  _next_matching(img_array[:, width//2] == _Colours.BACKGROUND)
-    first_y = first_back + _next_matching(img_array[first_back:, width//2] == _Colours.BLACK)
+    def find_first_cell(self):
+        width = self.img_array.shape[1]
 
-    first_x = _next_matching(img_array[first_y] == _Colours.BLACK)
+        first_back =  _next_background(self.img_array[:, width//2])
+        first_y = first_back + _next_black(self.img_array[first_back:, width//2])
 
-    return (first_x, first_y)
+        first_x = _next_black(self.img_array[first_y])
 
-def _extract_cell(img_array, start):
-    start_x, start_y = start
-    end_x = start_x + _next_matching(img_array[start_y, start_x:] == _Colours.BACKGROUND) - 1
-    end_y = start_y + _next_matching(img_array[start_y:, end_x] == _Colours.BACKGROUND) - 1
+        return (first_x, first_y)
 
-    return (end_x, end_y)
+    def parse_row(self, start, length):
+        row = []
+        for i in range(length):
+            end = self.extract_cell(start)
+            row.append(Cell.parse(self.img_array, start, end))
+            if i + 1 < length:
+                start = self.next_horizontal(start)
+        return row
 
-def _next_horizontal(img_array, start):
-    start_x, start_y = start
-    next_back = start_x + _next_matching(img_array[start_y, start_x:] == _Colours.BACKGROUND)
-    next_black = next_back + _next_matching(img_array[start_y, next_back:] == _Colours.BLACK)
+    def extract_cell(self, start):
+        start_x, start_y = start
+        end_x = start_x + _next_background(self.img_array[start_y, start_x:]) - 1
+        end_y = start_y + _next_background(self.img_array[start_y:, end_x]) - 1
 
-    return (next_black, start_y)
+        return (end_x, end_y)
 
-def _next_vertical(img_array, start):
-    start_x, start_y = start
-    next_back = start_y + _next_matching(img_array[start_y:, start_x] == _Colours.BACKGROUND)
-    next_black = next_back + _next_matching(img_array[next_back:, start_x] == _Colours.BLACK)
+    def next_horizontal(self, start):
+        start_x, start_y = start
+        next_back = start_x + _next_background(self.img_array[start_y, start_x:])
+        next_black = next_back + _next_black(self.img_array[start_y, next_back:])
 
-    return (start_x, next_black)
+        return (next_black, start_y)
+
+    def next_vertical(self, start):
+        start_x, start_y = start
+        next_back = start_y + _next_background(self.img_array[start_y:, start_x] )
+        next_black = next_back + _next_black(self.img_array[next_back:, start_x])
+
+        return (start_x, next_black)
 
 def _next_matching(condition):
         return np.nonzero(np.all(condition, axis=-1))[0][0]
+
+def _next_background(area):
+    return _next_matching(area == _Colours.BACKGROUND)
+
+def _next_black(area):
+    return _next_matching(area == _Colours.BLACK)
