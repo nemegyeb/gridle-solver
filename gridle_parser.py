@@ -44,20 +44,14 @@ class Cell:
 
     def get_colour(img_array: np.array) -> Colour:
         # Attempt to find each colour in the image
-        gray = np.nonzero(np.all(img_array == _Colours.GRAY, axis=-1))[0]
-        yellow = np.nonzero(np.all(img_array == _Colours.YELLOW, axis=-1))[0]
-        green = np.nonzero(np.all(img_array == _Colours.GREEN, axis=-1))[0]
-
-        # Select cell colour
-        match gray.shape + yellow.shape + green.shape:
-            case _, 0, 0:
-                return Colour.GRAY
-            case 0, _, 0:
-                return Colour.YELLOW
-            case 0, 0, _:
-                return Colour.GREEN
-            case _:
-                raise Exception("Could not parse cell colour")
+        if np.nonzero(np.all(img_array == _Colours.GRAY, axis=-1))[0].shape[0] != 0:
+            return Colour.GRAY
+        elif np.nonzero(np.all(img_array == _Colours.YELLOW, axis=-1))[0].shape[0] != 0:
+            return Colour.YELLOW
+        elif np.nonzero(np.all(img_array == _Colours.GREEN, axis=-1))[0].shape[0] != 0:
+            return Colour.GREEN
+        else:
+            raise Exception("Could not parse cell colour")
 
     def get_char(img_array: np.array) -> str:
         img_array[np.all(img_array < _Colours.GRAY, axis=-1)] = _Colours.WHITE
