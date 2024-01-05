@@ -7,6 +7,7 @@ from gridle_parser import Gridle
 from swap_solver import calculate_swaps
 from game_controller import execute_swaps
 
+
 def main():
     res = subprocess.run(["adb", "exec-out", "screencap", "-p"], capture_output=True)
     if res.returncode != 0:
@@ -27,6 +28,7 @@ def main():
     swaps = calculate_swaps(gridle.chars(), solution.chars())
 
     execute_swaps(gridle, swaps)
+
 
 if __name__ == "__main__":
     main()

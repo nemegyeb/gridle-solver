@@ -5,20 +5,22 @@ GRAY = Colour.GRAY
 YELLOW = Colour.YELLOW
 GREEN = Colour.GREEN
 
+
 # pick a row list or column list from the gridle
 def pick_list(gridle, row=None, column=None):
-    assert((row == None) != (column == None)) # exactly one of the two is given
-    assert(row in (None,0,2,4))
-    assert(column in (None,0,2,4))
+    assert (row is None) != (column is None)  # exactly one of the two is given
+    assert row in (None, 0, 2, 4)
+    assert column in (None, 0, 2, 4)
 
-    if row != None:
+    if row is not None:
         return gridle[row]
     else:
         return [row_list[column] for row_list in gridle]
 
+
 # returns a string containing all the yellow chars in the row and column that intersect at (row,column)
 def available_intersect(gridle_chars, gridle_colors, row, column):
-    if row in (1,3) or column in (1,3): # not an intersection
+    if row in (1, 3) or column in (1, 3):  # not an intersection
         return ""
 
     row_chars = pick_list(gridle_chars, row=row)
@@ -35,10 +37,11 @@ def available_intersect(gridle_chars, gridle_colors, row, column):
 
     return "".join(set(yellows))
 
+
 def possible_words(gridle, corpus, row=None, column=None):
-    assert((row == None) != (column == None)) # exactly one of the two is given
-    assert(row in (None,0,2,4))
-    assert(column in (None,0,2,4))
+    assert (row is None) != (column is None)  # exactly one of the two is given
+    assert row in (None, 0, 2, 4)
+    assert column in (None, 0, 2, 4)
 
     gridle_chars = _grid_chars(gridle)
     gridle_colors = _grid_colours(gridle)
@@ -65,7 +68,7 @@ def possible_words(gridle, corpus, row=None, column=None):
 
     # all the yellow chars that need to be in the word
     yellows_non_intersect = ""
-    for i in (1,3):
+    for i in (1, 3):
         if colors[i] == YELLOW:
             yellows_non_intersect += chars[i]
 
@@ -85,12 +88,12 @@ def possible_words(gridle, corpus, row=None, column=None):
             available = available_non_intersect.translate({ord(c): None for c in chars[i] + grays})
 
             # also allow yellows of intersecting rows/columns
-            if row != None:
+            if row is not None:
                 available += available_intersect(gridle_chars, gridle_colors, row, i)
             else:
                 available += available_intersect(gridle_chars, gridle_colors, i, column)
 
-            available = "".join(set(available)) # remove duplicates
+            available = "".join(set(available))  # remove duplicates
             pattern += f"[{available}]"
     p = re.compile(pattern)
     regex_filtered_words = list(filter(p.match, corpus))
@@ -102,7 +105,7 @@ def possible_words(gridle, corpus, row=None, column=None):
         word_without_greens = list(word)
         for i in range(len(word)):
             if colors[i] == GREEN:
-                word_without_greens[i] = '_'
+                word_without_greens[i] = "_"
         word_without_greens = "".join(word_without_greens)
 
         for c in yellows_non_intersect:
@@ -113,12 +116,13 @@ def possible_words(gridle, corpus, row=None, column=None):
 
     return possible_words
 
+
 def solve_gridle(gridle, corpus):
-    result = [[None]*5,[None]*5,[None]*5,[None]*5,[None]*5]
+    result = [[None] * 5, [None] * 5, [None] * 5, [None] * 5, [None] * 5]
     char_bag = gridle.chars()
-    row_possibilities = [None]*5
-    col_possibilities = [None]*5
-    for rc in (0,2,4):
+    row_possibilities = [None] * 5
+    col_possibilities = [None] * 5
+    for rc in (0, 2, 4):
         row_possibilities[rc] = possible_words(gridle, corpus, row=rc)
         col_possibilities[rc] = possible_words(gridle, corpus, column=rc)
 
@@ -129,15 +133,15 @@ def solve_gridle(gridle, corpus):
         # remove candidates that conflict with known characters:
         for r in range(5):
             for c in range(5):
-                if result[r][c] != None:
-                    if r in (0,2,4):
+                if result[r][c] is not None:
+                    if r in (0, 2, 4):
                         row_possibilities[r] = [p for p in row_possibilities[r] if p[c] == result[r][c]]
-                    if c in (0,2,4):
+                    if c in (0, 2, 4):
                         col_possibilities[c] = [p for p in col_possibilities[c] if p[r] == result[r][c]]
 
         # remove candidates that would use unavailable characters:
         for possibilities in (row_possibilities, col_possibilities):
-            for rc in (0,2,4): # for column or row
+            for rc in (0, 2, 4):  # for column or row
                 for candidate in possibilities[rc].copy():
                     char_bag_copy = char_bag.copy()
                     for char_index in range(5):
@@ -149,17 +153,17 @@ def solve_gridle(gridle, corpus):
                             break
 
         # remove candidates that use a character which no intersecting candidate uses at this position:
-        for r in (0,2,4):
+        for r in (0, 2, 4):
             for candidate in row_possibilities[r].copy():
-                for c in (0,2,4):
+                for c in (0, 2, 4):
                     # if there are intersecting candidates but none of them contain the char at the required position:
                     if col_possibilities[c] and candidate[c] not in [x[r] for x in col_possibilities[c]]:
                         row_possibilities[r].remove(candidate)
                         changed = True
                         break
-        for c in (0,2,4):
+        for c in (0, 2, 4):
             for candidate in col_possibilities[c].copy():
-                for r in (0,2,4):
+                for r in (0, 2, 4):
                     # if there are intersecting candidates but none of them contain the char at the required position:
                     if row_possibilities[r] and candidate[r] not in [x[c] for x in row_possibilities[r]]:
                         col_possibilities[c].remove(candidate)
@@ -167,15 +171,16 @@ def solve_gridle(gridle, corpus):
                         break
 
         # fill in words if there is only one possibility:
-        for rc in (0,2,4):
-
+        for rc in (0, 2, 4):
             if len(row_possibilities[rc]) == 1:
                 changed = True
                 word = row_possibilities[rc][0]
                 for char_index in range(5):
                     assert result[rc][char_index] in (None, word[char_index])
-                    if char_index in (1,3) or not col_possibilities[char_index]: # if it is the second word on an intersection or the first word on a non-intersection tile
-                        char_bag.remove(word[char_index]) # remove first occurrence
+                    if (
+                        char_index in (1, 3) or not col_possibilities[char_index]
+                    ):  # if it is the second word on an intersection or the first word on a non-intersection tile
+                        char_bag.remove(word[char_index])  # remove first occurrence
                     result[rc][char_index] = word[char_index]
                 row_possibilities[rc] = []
 
@@ -184,15 +189,19 @@ def solve_gridle(gridle, corpus):
                 word = col_possibilities[rc][0]
                 for char_index in range(5):
                     assert result[char_index][rc] in (None, word[char_index])
-                    if char_index in (1,3) or not row_possibilities[char_index]: # if it is the second word on an intersection or the first word on a non-intersection tile
-                        char_bag.remove(word[char_index]) # remove first occurrence
+                    if (
+                        char_index in (1, 3) or not row_possibilities[char_index]
+                    ):  # if it is the second word on an intersection or the first word on a non-intersection tile
+                        char_bag.remove(word[char_index])  # remove first occurrence
                     result[char_index][rc] = word[char_index]
                 col_possibilities[rc] = []
 
-    return Gridle([Cell(0, 0, c, GREEN) for row in result for c in row if c != None])
+    return Gridle([Cell(0, 0, c, GREEN) for row in result for c in row if c is not None])
+
 
 def _grid_chars(gridle):
-    return [[cell.char if cell != None else None for cell in row] for row in gridle.to_grid()]
+    return [[cell.char if cell is not None else None for cell in row] for row in gridle.to_grid()]
+
 
 def _grid_colours(gridle):
-    return [[cell.colour if cell != None else None for cell in row] for row in gridle.to_grid()]
+    return [[cell.colour if cell is not None else None for cell in row] for row in gridle.to_grid()]
