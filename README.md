@@ -1,6 +1,6 @@
 # gridle-solver
 
-This is a cheat for the mobile game [Gridle by Bill Farmer](https://github.com/billthefarmer/gridle).
+This is a solver  for the mobile game [Gridle by Bill Farmer](https://github.com/billthefarmer/gridle).
 It can parse and solve gridle puzzles automatically.
 
 ## Getting Started
@@ -24,6 +24,8 @@ It can parse and solve gridle puzzles automatically.
     ```bash
     pip install -r requirements.txt
     ```
+
+4. Install `adb` with the package manager of your choice
 
 ### Usage
 
