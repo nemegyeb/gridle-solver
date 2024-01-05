@@ -42,18 +42,22 @@ class Cell:
 
         return Cell(start, end, Cell.get_char(img_array), colour)
 
-    def get_colour(img_array: np.array) -> Colour:  # TODO
-        # Calculate the average colour
-        r, g, b = np.mean(img_array, axis=(0, 1)) - _Colours.BACKGROUND
+    def get_colour(img_array: np.array) -> Colour:
+        # Attempt to find each colour in the image
+        gray = np.nonzero(np.all(img_array == _Colours.GRAY, axis=-1))[0]
+        yellow = np.nonzero(np.all(img_array == _Colours.YELLOW, axis=-1))[0]
+        green = np.nonzero(np.all(img_array == _Colours.GREEN, axis=-1))[0]
 
         # Select cell colour
-        if g > 0 and r < 0 and b < 0:
-            return Colour.GREEN
-        elif g > 0 and r > 0 and b < 0:
-            return Colour.YELLOW
-        elif (r - g) ** 2 + (r - b) ** 2 >= 1:
-            raise Exception("Could not parse cell colour")
-        return Colour.GRAY
+        match gray.shape + yellow.shape + green.shape:
+            case _, 0, 0:
+                return Colour.GRAY
+            case 0, _, 0:
+                return Colour.YELLOW
+            case 0, 0, _:
+                return Colour.GREEN
+            case _:
+                raise Exception("Could not parse cell colour")
 
     def get_char(img_array: np.array) -> str:
         img_array[np.all(img_array < _Colours.GRAY, axis=-1)] = _Colours.WHITE
