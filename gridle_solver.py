@@ -1,9 +1,24 @@
 import re
+from typing import Optional
 from gridle_parser import Cell, Colour, Gridle
 
 GRAY = Colour.GRAY
 YELLOW = Colour.YELLOW
 GREEN = Colour.GREEN
+
+
+class GridleSolution(Gridle):
+    def __init__(self, gridle: Gridle, solution: list[list[Optional[str]]]):
+        cells = []
+        for row_g, row_s in zip(gridle.to_grid(), solution):
+            for cell, char in zip(row_g, row_s):
+                if cell is not None:
+                    cells.append(Cell(cell.start, cell.end, char, Colour.GREEN))
+
+        Gridle.__init__(self, cells)
+
+    def is_valid(self) -> bool:
+        return len(self.cells) == 21
 
 
 # pick a row list or column list from the gridle
@@ -117,7 +132,7 @@ def possible_words(gridle, corpus, row=None, column=None):
     return possible_words
 
 
-def solve_gridle(gridle, corpus):
+def solve_gridle(gridle: Gridle, corpus: list[str]) -> GridleSolution:
     result = [[None] * 5, [None] * 5, [None] * 5, [None] * 5, [None] * 5]
     char_bag = gridle.chars()
     row_possibilities = [None] * 5
@@ -196,7 +211,7 @@ def solve_gridle(gridle, corpus):
                     result[char_index][rc] = word[char_index]
                 col_possibilities[rc] = []
 
-    return Gridle([Cell(0, 0, c, GREEN) for row in result for c in row if c is not None])
+    return GridleSolution(gridle, result)
 
 
 def _grid_chars(gridle):

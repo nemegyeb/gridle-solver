@@ -12,7 +12,7 @@ def main():
     gridle.print()
 
     solution = solve_gridle(gridle, CORPUS_EN)
-    if len(solution.cells) != 21:
+    if not solution.is_valid():
         print("Could not solve.")
         exit(1)
 
