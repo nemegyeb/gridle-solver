@@ -25,13 +25,13 @@ It can parse and solve gridle puzzles automatically.
     pip install -r requirements.txt
     ```
 
-4. Install `adb` with the package manager of your choice
+4. Install `adb` with the package manager of your choice.
 
 ### Usage
 
 1. Connect your phone so that it is ready to receive adb commands.
    The easiest way to do this is to connect your phone via USB and enable USB debugging for the device you are using.
-2. Use the default theme (Dark) and the default highlight colours in gridle. The other themes and highlight colours are not supported and will (most likely) not work.
+2. Use the default theme (Dark) and the default highlight colours in gridle. The other themes and highlight colours are not supported but may work if you change the constants of the `_Colours` class.
 3. Run `python3 main.py`
 
 ## License
