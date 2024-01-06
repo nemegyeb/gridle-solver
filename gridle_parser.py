@@ -21,6 +21,15 @@ class Colour:
                 raise Exception("Unknown colour")
 
 
+class GameColours:
+    GRAY = (99, 99, 99)
+    BLACK = (0, 0, 0)
+    WHITE = (255, 255, 255)
+    GREEN = (0, 255, 0)
+    YELLOW = (255, 255, 0)
+    BACKGROUND = (48, 48, 48)
+
+
 class Cell:
     def __init__(self, start: tuple[int, int], end: tuple[int, int], char: str, colour: Colour):
         self.end = end
@@ -44,11 +53,11 @@ class Cell:
 
     def get_colour(img_array: np.array) -> Colour:
         # Calculate the average color of non-backgroud colours
-        valid = img_array[~np.all(img_array <= _Colours.BACKGROUND, axis=-1)]
+        valid = img_array[~np.all(img_array <= GameColours.BACKGROUND, axis=-1)]
         mean = valid.mean(axis=0)
 
         # select closest colour from possibilities
-        colours = np.array([_Colours.GRAY, _Colours.YELLOW, _Colours.GREEN])
+        colours = np.array([GameColours.GRAY, GameColours.YELLOW, GameColours.GREEN])
         index = np.linalg.norm(colours - mean, axis=1).argmin()
 
         # the colour must be present in the image
@@ -58,8 +67,8 @@ class Cell:
         return [Colour.GRAY, Colour.YELLOW, Colour.GREEN][index]
 
     def get_char(img_array: np.array) -> str:
-        img_array[np.all(img_array < _Colours.GRAY, axis=-1)] = _Colours.WHITE
-        img_array[~np.all(img_array == _Colours.WHITE, axis=-1)] = _Colours.BLACK
+        img_array[np.all(img_array < GameColours.GRAY, axis=-1)] = GameColours.WHITE
+        img_array[~np.all(img_array == GameColours.WHITE, axis=-1)] = GameColours.BLACK
         data = pytesseract.image_to_string(
             Image.fromarray(img_array), config="--psm 10 -c tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ"
         )
@@ -129,15 +138,6 @@ class Gridle:
         print(disp)
 
 
-class _Colours:
-    GRAY = (99, 99, 99)
-    BLACK = (0, 0, 0)
-    WHITE = (255, 255, 255)
-    GREEN = (0, 255, 0)
-    YELLOW = (255, 255, 0)
-    BACKGROUND = (48, 48, 48)
-
-
 class _GridleImage:
     def __init__(self, image):
         self.img_array = np.array(image)
@@ -188,8 +188,8 @@ def _next_matching(condition):
 
 
 def _next_background(area):
-    return _next_matching(area == _Colours.BACKGROUND)
+    return _next_matching(area == GameColours.BACKGROUND)
 
 
 def _next_black(area):
-    return _next_matching(area == _Colours.BLACK)
+    return _next_matching(area == GameColours.BLACK)
