@@ -41,8 +41,20 @@ class Cell:
     def __format__(self, format_spec: str) -> str:
         return format(f"{Colour.get_ansi(self.colour)}{self.char}\033[0m", format_spec)
 
+    def __str__(self) -> str:
+        return self.char
+
     def get_centre(self) -> tuple[int, int]:
         return ((self.start[0] + self.end[0]) // 2, (self.start[1] + self.end[1]) // 2)
+
+    def is_gray(self) -> bool:
+        return self.colour == Colour.GRAY
+
+    def is_yellow(self) -> bool:
+        return self.colour == Colour.YELLOW
+
+    def is_green(self) -> bool:
+        return self.colour == Colour.GREEN
 
     def parse(img_array: np.ndarray, start: tuple[int, int], end: tuple[int, int]) -> Self:
         start_x, start_y = start
