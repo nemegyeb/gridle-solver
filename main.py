@@ -1,19 +1,12 @@
-import io
-import subprocess
-from PIL import Image
 from corpora import CORPUS_EN
 from gridle_solver import solve_gridle
 from gridle_parser import Gridle
 from swap_solver import calculate_swaps
-from game_controller import execute_swaps
+from game_controller import capture_screen, execute_swaps
 
 
 def main():
-    res = subprocess.run(["adb", "exec-out", "screencap", "-p"], capture_output=True)
-    if res.returncode != 0:
-        raise Exception("Could not take screenshot")
-
-    image = Image.open(io.BytesIO(res.stdout))
+    image = capture_screen()
 
     gridle = Gridle.parse(image)
     gridle.print()
