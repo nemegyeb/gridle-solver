@@ -43,15 +43,19 @@ class Cell:
         return Cell(start, end, Cell.get_char(img_array), colour)
 
     def get_colour(img_array: np.array) -> Colour:
-        # Attempt to find each colour in the image
-        if np.nonzero(np.all(img_array == _Colours.GRAY, axis=-1))[0].shape[0] != 0:
-            return Colour.GRAY
-        elif np.nonzero(np.all(img_array == _Colours.YELLOW, axis=-1))[0].shape[0] != 0:
-            return Colour.YELLOW
-        elif np.nonzero(np.all(img_array == _Colours.GREEN, axis=-1))[0].shape[0] != 0:
-            return Colour.GREEN
-        else:
+        # Calculate the average color of non-backgroud colours
+        valid = img_array[~np.all(img_array <= _Colours.BACKGROUND, axis=-1)]
+        mean = valid.mean(axis=0)
+
+        # select closest colour from possibilities
+        colours = np.array([_Colours.GRAY, _Colours.YELLOW, _Colours.GREEN])
+        index = np.linalg.norm(colours - mean, axis=1).argmin()
+
+        # the colour must be present in the image
+        if not (valid == colours[index]).all(axis=-1).any():
             raise Exception("Could not parse cell colour")
+
+        return [Colour.GRAY, Colour.YELLOW, Colour.GREEN][index]
 
     def get_char(img_array: np.array) -> str:
         img_array[np.all(img_array < _Colours.GRAY, axis=-1)] = _Colours.WHITE
