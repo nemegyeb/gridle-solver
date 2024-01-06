@@ -1,15 +1,16 @@
 import pytesseract
 import numpy as np
 from PIL import Image
-from typing import Optional
+from enum import auto, Enum
+from typing import Optional, Self
 
 
-class Colour:
-    GRAY = "GRAY"
-    YELLOW = "YELLOW"
-    GREEN = "GREEN"
+class Colour(Enum):
+    GRAY = auto()
+    YELLOW = auto()
+    GREEN = auto()
 
-    def get_ansi(colour: type["Colour"]) -> str:
+    def get_ansi(colour: Self) -> str:
         match colour:
             case Colour.GRAY:
                 return "\033[30;1m"
@@ -43,7 +44,7 @@ class Cell:
     def get_centre(self) -> tuple[int, int]:
         return ((self.start[0] + self.end[0]) // 2, (self.start[1] + self.end[1]) // 2)
 
-    def parse(img_array: np.array, start: tuple[int, int], end: tuple[int, int]) -> type["Cell"]:
+    def parse(img_array: np.ndarray, start: tuple[int, int], end: tuple[int, int]) -> Self:
         start_x, start_y = start
         end_x, end_y = end
         img_array = img_array[start_y:end_y, start_x:end_x]
@@ -51,7 +52,7 @@ class Cell:
 
         return Cell(start, end, Cell.get_char(img_array), colour)
 
-    def get_colour(img_array: np.array) -> Colour:
+    def get_colour(img_array: np.ndarray) -> Colour:
         # Calculate the average color of non-backgroud colours
         valid = img_array[~np.all(img_array <= GameColours.BACKGROUND, axis=-1)]
         mean = valid.mean(axis=0)
@@ -66,7 +67,7 @@ class Cell:
 
         return [Colour.GRAY, Colour.YELLOW, Colour.GREEN][index]
 
-    def get_char(img_array: np.array) -> str:
+    def get_char(img_array: np.ndarray) -> str:
         img_array[np.all(img_array < GameColours.GRAY, axis=-1)] = GameColours.WHITE
         img_array[~np.all(img_array == GameColours.WHITE, axis=-1)] = GameColours.BLACK
         data = pytesseract.image_to_string(
@@ -83,7 +84,7 @@ class Gridle:
     def __init__(self, cells: list[Cell]):
         self.cells = cells
 
-    def parse(image: Image) -> type["Gridle"]:
+    def parse(image: Image) -> Self:
         if image.mode != "RGB":
             image = image.convert("RGB")
 
