@@ -3,10 +3,6 @@ from typing import Optional
 from abc import ABC, abstractmethod
 from gridle_parser import Cell, Colour, Gridle
 
-GRAY = Colour.GRAY
-YELLOW = Colour.YELLOW
-GREEN = Colour.GREEN
-
 
 class WordSelector(ABC):
     def __init__(self, gridle: Gridle, index: int):
@@ -66,7 +62,7 @@ class GridleSolution(Gridle):
         cells = []
         for row_g, row_s in zip(gridle.to_grid(), solution):
             for cell, char in zip(row_g, row_s):
-                if cell is not None:
+                if char is not None:
                     cells.append(Cell(cell.start, cell.end, char, Colour.GREEN))
 
         Gridle.__init__(self, cells)
@@ -138,80 +134,77 @@ def possible_words(gridle: Gridle, corpus: list[str], selector: WordSelector) ->
 def solve_gridle(gridle: Gridle, corpus: list[str]) -> GridleSolution:
     result = [[None] * 5, [None] * 5, [None] * 5, [None] * 5, [None] * 5]
     char_bag = gridle.chars()
-    row_possibilities = [None] * 5
-    col_possibilities = [None] * 5
-    for rc in (0, 1, 2):
-        row_possibilities[rc * 2] = possible_words(gridle, corpus, Row(gridle, rc))
-        col_possibilities[rc * 2] = possible_words(gridle, corpus, Column(gridle, rc))
+    row_possibilities = []
+    col_possibilities = []
+    for rc in range(3):
+        row_possibilities.append(possible_words(gridle, corpus, Row(gridle, rc)))
+        col_possibilities.append(possible_words(gridle, corpus, Column(gridle, rc)))
 
     changed = True
     while changed:
         changed = False
 
         # remove candidates that conflict with known characters:
-        for r in range(5):
-            for c in range(5):
-                if result[r][c] is not None:
-                    if r in (0, 2, 4):
-                        row_possibilities[r] = [p for p in row_possibilities[r] if p[c] == result[r][c]]
-                    if c in (0, 2, 4):
-                        col_possibilities[c] = [p for p in col_possibilities[c] if p[r] == result[r][c]]
+        for i in range(3):
+            for j in range(5):
+                if result[i * 2][j] is not None:
+                    row_possibilities[i] = [p for p in row_possibilities[i] if p[j] == result[i * 2][j]]
+                if result[j][i * 2] is not None:
+                    col_possibilities[i] = [p for p in col_possibilities[i] if p[j] == result[j][i * 2]]
 
         # remove candidates that would use unavailable characters:
         for possibilities in (row_possibilities, col_possibilities):
-            for rc in (0, 2, 4):  # for column or row
-                for candidate in possibilities[rc].copy():
+            for possibility in possibilities:  # for column or row
+                for candidate in possibility.copy():
                     char_bag_copy = char_bag.copy()
-                    for char_index in range(5):
-                        if candidate[char_index] in char_bag_copy:
-                            char_bag_copy.remove(candidate[char_index])
+                    for char in candidate:
+                        if char in char_bag_copy:
+                            char_bag_copy.remove(char)
                         else:
-                            possibilities[rc].remove(candidate)
+                            possibility.remove(candidate)
                             changed = True
                             break
 
         # remove candidates that use a character which no intersecting candidate uses at this position:
-        for r in (0, 2, 4):
-            for candidate in row_possibilities[r].copy():
-                for c in (0, 2, 4):
+        for r, row in enumerate(row_possibilities):
+            for candidate in row.copy():
+                for c, col in enumerate(col_possibilities):
                     # if there are intersecting candidates but none of them contain the char at the required position:
-                    if col_possibilities[c] and candidate[c] not in [x[r] for x in col_possibilities[c]]:
-                        row_possibilities[r].remove(candidate)
+                    if col and candidate[c * 2] not in [word[r * 2] for word in col]:
+                        row.remove(candidate)
                         changed = True
                         break
-        for c in (0, 2, 4):
-            for candidate in col_possibilities[c].copy():
-                for r in (0, 2, 4):
+        for c, col in enumerate(col_possibilities):
+            for candidate in col.copy():
+                for r, row in enumerate(row_possibilities):
                     # if there are intersecting candidates but none of them contain the char at the required position:
-                    if row_possibilities[r] and candidate[r] not in [x[c] for x in row_possibilities[r]]:
-                        col_possibilities[c].remove(candidate)
+                    if row and candidate[r * 2] not in [word[c * 2] for word in row]:
+                        col.remove(candidate)
                         changed = True
                         break
 
         # fill in words if there is only one possibility:
-        for rc in (0, 2, 4):
-            if len(row_possibilities[rc]) == 1:
-                changed = True
-                word = row_possibilities[rc][0]
-                for char_index in range(5):
-                    assert result[rc][char_index] in (None, word[char_index])
-                    if (
-                        char_index in (1, 3) or not col_possibilities[char_index]
-                    ):  # if it is the second word on an intersection or the first word on a non-intersection tile
-                        char_bag.remove(word[char_index])  # remove first occurrence
-                    result[rc][char_index] = word[char_index]
-                row_possibilities[rc] = []
+        for rc in range(3):
+            match row_possibilities[rc]:
+                case [word]:
+                    changed = True
+                    for i, char in enumerate(word):
+                        assert result[rc * 2][i] in (None, char)
+                        # if it is the first character on a non-intersection or the second on an intersection tile
+                        if i % 2 != 0 or not col_possibilities[i // 2]:
+                            char_bag.remove(char)  # remove first occurrence
+                        result[rc * 2][i] = char
+                    row_possibilities[rc].clear()
 
-            if len(col_possibilities[rc]) == 1:
-                changed = True
-                word = col_possibilities[rc][0]
-                for char_index in range(5):
-                    assert result[char_index][rc] in (None, word[char_index])
-                    if (
-                        char_index in (1, 3) or not row_possibilities[char_index]
-                    ):  # if it is the second word on an intersection or the first word on a non-intersection tile
-                        char_bag.remove(word[char_index])  # remove first occurrence
-                    result[char_index][rc] = word[char_index]
-                col_possibilities[rc] = []
+            match col_possibilities[rc]:
+                case [word]:
+                    changed = True
+                    for i, char in enumerate(word):
+                        assert result[i][rc * 2] in (None, char)
+                        # if it is the first character on a non-intersection or the second on an intersection tile
+                        if i % 2 != 0 or not row_possibilities[i // 2]:
+                            char_bag.remove(char)  # remove first occurrence
+                        result[i][rc * 2] = char
+                    col_possibilities[rc].clear()
 
     return GridleSolution(gridle, result)
