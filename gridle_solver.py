@@ -97,7 +97,7 @@ def possible_words(gridle: Gridle, corpus: list[str], selector: WordSelector) ->
             # match for any available gray char and yellows of the same word
             available = available_non_intersect.union(filter(Cell.is_yellow, cells))
 
-            # remove the chat at this position and other gray chars in this word
+            # remove the char at this position and other gray chars in this word
             available -= disallowed.union({cell})
 
             if i % 2 == 0:
