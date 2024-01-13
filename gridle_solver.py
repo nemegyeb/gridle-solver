@@ -1,10 +1,64 @@
 import re
 from typing import Optional
+from abc import ABC, abstractmethod
 from gridle_parser import Cell, Colour, Gridle
 
 GRAY = Colour.GRAY
 YELLOW = Colour.YELLOW
 GREEN = Colour.GREEN
+
+
+class WordSelector(ABC):
+    def __init__(self, gridle: Gridle, index: int):
+        self.index = index
+        self.gridle = gridle
+
+    @abstractmethod
+    def cells(self) -> list[Cell]:
+        pass
+
+    @abstractmethod
+    def rows(self) -> set[int]:
+        pass
+
+    @abstractmethod
+    def columns(self) -> set[int]:
+        pass
+
+    # returns a word of the other axis orthogonal to this
+    @abstractmethod
+    def other_axis(self, other: int) -> list[Cell]:
+        pass
+
+
+class Row(WordSelector):
+    def cells(self) -> list[Cell]:
+        return self.gridle.get_row(self.index)
+
+    def rows(self) -> set[int]:
+        return set(range(3)) - {self.index}
+
+    def columns(self) -> set[int]:
+        return set(range(3))
+
+    # returns the column 'other'
+    def other_axis(self, other: int) -> list[Cell]:
+        return self.gridle.get_col(other)
+
+
+class Column(WordSelector):
+    def cells(self) -> list[Cell]:
+        return self.gridle.get_col(self.index)
+
+    def rows(self) -> set[int]:
+        return set(range(3))
+
+    def columns(self) -> set[int]:
+        return set(range(3)) - {self.index}
+
+    # returns the row of number 'other'
+    def other_axis(self, other: int) -> list[Cell]:
+        return self.gridle.get_row(other)
 
 
 class GridleSolution(Gridle):
@@ -21,110 +75,59 @@ class GridleSolution(Gridle):
         return len(self.cells) == 21
 
 
-# pick a row list or column list from the gridle
-def pick_list(gridle, row=None, column=None):
-    assert (row is None) != (column is None)  # exactly one of the two is given
-    assert row in (None, 0, 2, 4)
-    assert column in (None, 0, 2, 4)
+# returns all words of the 'corpus' that satisfy the requirements of the word selected by 'selector' from 'gridle'
+def possible_words(gridle: Gridle, corpus: list[str], selector: WordSelector) -> list[str]:
+    cells = selector.cells()
 
-    if row is not None:
-        return gridle[row]
-    else:
-        return [row_list[column] for row_list in gridle]
+    rows = selector.rows()
+    columns = selector.columns()
 
+    # all gray characters not in this word
+    rest = set().union(*map(gridle.get_row, rows), *map(gridle.get_col, columns))
+    available_non_intersect = set(filter(Cell.is_gray, rest))
 
-# returns a string containing all the yellow chars in the row and column that intersect at (row,column)
-def available_intersect(gridle_chars, gridle_colors, row, column):
-    if row in (1, 3) or column in (1, 3):  # not an intersection
-        return ""
+    # yellow chars could also be in an intersecting word
+    yellows = set(filter(Cell.is_yellow, cells))
 
-    row_chars = pick_list(gridle_chars, row=row)
-    row_colors = pick_list(gridle_colors, row=row)
-    col_chars = pick_list(gridle_chars, column=column)
-    col_colors = pick_list(gridle_colors, column=column)
-
-    yellows = ""
-    for i in range(5):
-        if row_colors[i] == YELLOW:
-            yellows += row_chars[i]
-        if col_colors[i] == YELLOW:
-            yellows += col_chars[i]
-
-    return "".join(set(yellows))
-
-
-def possible_words(gridle, corpus, row=None, column=None):
-    assert (row is None) != (column is None)  # exactly one of the two is given
-    assert row in (None, 0, 2, 4)
-    assert column in (None, 0, 2, 4)
-
-    gridle_chars = _grid_chars(gridle)
-    gridle_colors = _grid_colours(gridle)
-    available_non_intersect = ""
-
-    chars = pick_list(gridle_chars, row=row, column=column)
-    colors = pick_list(gridle_colors, row=row, column=column)
-
-    for r in range(5):
-        for c in range(5):
-            if r == row or c == column:
-                if gridle_colors[r][c] == YELLOW:
-                    available_non_intersect += gridle_chars[r][c]
-            else:
-                if gridle_colors[r][c] == GRAY:
-                    available_non_intersect += gridle_chars[r][c]
-
-    available_non_intersect = "".join(set(available_non_intersect))
-
-    yellows = ""
-    for i in range(len(chars)):
-        if colors[i] == YELLOW:
-            yellows += chars[i]
-
-    # all the yellow chars that need to be in the word
-    yellows_non_intersect = ""
-    for i in (1, 3):
-        if colors[i] == YELLOW:
-            yellows_non_intersect += chars[i]
-
-    # get a list of gray chars that do not also occurr as yellow in this word
-    grays = ""
-    for i in range(5):
-        if colors[i] == GRAY and chars[i] not in yellows:
-            grays += chars[i]
+    # list of gray chars that do not also occurr as yellow in this word
+    disallowed = set(filter(Cell.is_gray, cells)) - yellows
 
     # build a regex pattern which candidates have to match
     pattern = ""
-    for i in range(5):
-        if colors[i] == GREEN:
-            pattern += chars[i]
+    for i, cell in enumerate(cells):
+        if cell.is_green():
+            pattern += str(cell)
         else:
-            # match for any available char but not the one at this position and not other grays in this word
-            available = available_non_intersect.translate({ord(c): None for c in chars[i] + grays})
+            # match for any available gray char and yellows of the same word
+            available = available_non_intersect.union(filter(Cell.is_yellow, cells))
 
-            # also allow yellows of intersecting rows/columns
-            if row is not None:
-                available += available_intersect(gridle_chars, gridle_colors, row, i)
-            else:
-                available += available_intersect(gridle_chars, gridle_colors, i, column)
+            # remove the chat at this position and other gray chars in this word
+            available -= disallowed.union({cell})
 
-            available = "".join(set(available))  # remove duplicates
+            if i % 2 == 0:
+                # also allow yellows of intersecting rows/columns
+                available = available.union(filter(Cell.is_yellow, selector.other_axis(i // 2)))
+
+            available = "".join(map(str, available))  # stringify all cells
             pattern += f"[{available}]"
+
     p = re.compile(pattern)
     regex_filtered_words = list(filter(p.match, corpus))
+
+    # yellow chars that need to be in the word
+    definite_yellows = set(filter(Cell.is_yellow, [cells[1], cells[3]]))
 
     # look for words that contain all the given yellow chars at non-green positions
     possible_words = []
     for word in regex_filtered_words:
-        # the same word but green chars are replaced with an underscore
+        # the same word but green chars removed
         word_without_greens = list(word)
-        for i in range(len(word)):
-            if colors[i] == GREEN:
-                word_without_greens[i] = "_"
-        word_without_greens = "".join(word_without_greens)
+        for cell in cells:
+            if cell.is_green():
+                word_without_greens.remove(cell.char)
 
-        for c in yellows_non_intersect:
-            if c not in word_without_greens:
+        for c in definite_yellows:
+            if c.char not in word_without_greens:
                 break
         else:
             possible_words.append(word)
@@ -137,9 +140,9 @@ def solve_gridle(gridle: Gridle, corpus: list[str]) -> GridleSolution:
     char_bag = gridle.chars()
     row_possibilities = [None] * 5
     col_possibilities = [None] * 5
-    for rc in (0, 2, 4):
-        row_possibilities[rc] = possible_words(gridle, corpus, row=rc)
-        col_possibilities[rc] = possible_words(gridle, corpus, column=rc)
+    for rc in (0, 1, 2):
+        row_possibilities[rc * 2] = possible_words(gridle, corpus, Row(gridle, rc))
+        col_possibilities[rc * 2] = possible_words(gridle, corpus, Column(gridle, rc))
 
     changed = True
     while changed:
@@ -212,11 +215,3 @@ def solve_gridle(gridle: Gridle, corpus: list[str]) -> GridleSolution:
                 col_possibilities[rc] = []
 
     return GridleSolution(gridle, result)
-
-
-def _grid_chars(gridle):
-    return [[cell.char if cell is not None else None for cell in row] for row in gridle.to_grid()]
-
-
-def _grid_colours(gridle):
-    return [[cell.colour if cell is not None else None for cell in row] for row in gridle.to_grid()]
